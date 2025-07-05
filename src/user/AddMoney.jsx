@@ -1,18 +1,23 @@
-import React, { useState } from "react";
-import { X } from "lucide-react";
+import React from "react";
+import { useForm } from "react-hook-form";
 
 const AddRecordForm = ({ onClose, onSave }) => {
-  const [form, setForm] = useState({
-    type: "expense",
-    date: new Date().toISOString().split("T")[0],
-    amount: "",
-    category: "",
-    description: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      type: "expense",
+      date: new Date().toISOString().split("T")[0],
+      amount: "",
+      category: "",
+      description: "",
+    },
   });
 
-  const handleSubmit = () => {
-    if (!form.amount || !form.category || !form.description) return;
-    onSave({ ...form, amount: parseFloat(form.amount) });
+  const onSubmit = (data) => {
+    onSave({ ...data, amount: parseFloat(data.amount) });
   };
 
   return (
@@ -22,22 +27,13 @@ const AddRecordForm = ({ onClose, onSave }) => {
         <h2 className="text-2xl font-bold text-red-600">Add New Record</h2>
       </div>
 
-      {/* Form */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-        className="space-y-6"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Row 1: Type & Date */}
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Type */}
           <div className="w-full md:w-1/2">
             <label className="text-red-700 text-sm mb-1 block">Type</label>
             <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
+              {...register("type")}
               className="w-full border border-red-300 px-3 py-2 rounded-md"
             >
               <option value="income">Income</option>
@@ -45,13 +41,11 @@ const AddRecordForm = ({ onClose, onSave }) => {
             </select>
           </div>
 
-          {/* Date */}
           <div className="w-full md:w-1/2">
             <label className="text-red-700 text-sm mb-1 block">Date</label>
             <input
               type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              {...register("date")}
               className="w-full border border-red-300 px-3 py-2 rounded-md"
             />
           </div>
@@ -59,28 +53,30 @@ const AddRecordForm = ({ onClose, onSave }) => {
 
         {/* Row 2: Amount & Category */}
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Amount */}
           <div className="w-full md:w-1/2">
             <label className="text-red-700 text-sm mb-1 block">Amount</label>
             <input
               type="number"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              {...register("amount", { required: "Amount is required" })}
               className="w-full border border-red-300 px-3 py-2 rounded-md"
               placeholder="e.g. 1000"
             />
+            {errors.amount && (
+              <p className="text-red-500 text-sm">{errors.amount.message}</p>
+            )}
           </div>
 
-          {/* Category */}
           <div className="w-full md:w-1/2">
             <label className="text-red-700 text-sm mb-1 block">Category</label>
             <input
               type="text"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              {...register("category", { required: "Category is required" })}
               className="w-full border border-red-300 px-3 py-2 rounded-md"
               placeholder="e.g. Salary, Groceries"
             />
+            {errors.category && (
+              <p className="text-red-500 text-sm">{errors.category.message}</p>
+            )}
           </div>
         </div>
 
@@ -88,14 +84,14 @@ const AddRecordForm = ({ onClose, onSave }) => {
         <div>
           <label className="text-red-700 text-sm mb-1 block">Description</label>
           <textarea
-            value={form.description}
-            onChange={(e) =>
-              setForm({ ...form, description: e.target.value })
-            }
+            {...register("description", { required: "Description is required" })}
             className="w-full border border-red-300 px-3 py-2 rounded-md"
             placeholder="Add notes..."
             rows={3}
           ></textarea>
+          {errors.description && (
+            <p className="text-red-500 text-sm">{errors.description.message}</p>
+          )}
         </div>
 
         {/* Buttons */}
