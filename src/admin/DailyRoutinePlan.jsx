@@ -1,109 +1,71 @@
 import React, { useState, useEffect } from "react";
-import { dailyRoutineApi } from "../utils/fetchApi";
+import { Plus } from "lucide-react";
+import AddRoutineForm from "./AddroutinePlan";
+import { routineApi } from "../utils/fetchApi";
 
-const formatTime = (isoTime) => {
-  if (!isoTime) return "";
-  return new Date(isoTime).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const DailyRoutine = () => {
-  const [tasks, setTasks] = useState([]);
+const DailyRoutinePlan = () => {
+  const [routines, setRoutines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [togglingId, setTogglingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchRoutines = async () => {
       try {
-        const data = await dailyRoutineApi.getAll();
-        setTasks(data);
+        const data = await routineApi.getAll();
+        setRoutines(data);
       } catch (err) {
         setError(err.message || "Failed to load routines");
       } finally {
         setLoading(false);
       }
     };
-    fetchTasks();
+    fetchRoutines();
   }, []);
 
-  const toggleDone = async (id, currentStatus) => {
-    setTogglingId(id);
-    setError("");
-    try {
-      const updated = await dailyRoutineApi.toggleComplete(id, !currentStatus);
-      setTasks((prev) => prev.map((t) => (t._id === id ? updated : t)));
-    } catch (err) {
-      setError(err.message || "Failed to update task");
-    } finally {
-      setTogglingId(null);
-    }
+  const handleAddRoutine = async (form) => {
+    const newRoutine = await routineApi.create(form.title, form.description);
+    setRoutines((prev) => [newRoutine, ...prev]);
+    setShowForm(false);
   };
 
   return (
-    <div className="min-h-screen bg-white px-4 py-8 md:px-16 font-[Poppins]">
-      <h1 className="text-3xl font-bold text-red-600 text-center mb-8">
-        Daily Routines
+    <div className="min-h-screen bg-white px-4 py-8 md:px-16 font-[Poppins] relative">
+      <h1 className="text-3xl font-bold text-red-600 text-center mb-6">
+        Daily Routines Plan
       </h1>
 
       {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
       {loading ? (
         <p className="text-center text-gray-500">Loading routines...</p>
-      ) : tasks.length === 0 ? (
-        <p className="text-center text-gray-500">No routines yet.</p>
+      ) : routines.length === 0 ? (
+        <p className="text-center text-gray-500">No routines yet. Add one below.</p>
       ) : (
         <div className="space-y-4">
-          {tasks.map((task) => (
-            <div
-              key={task._id}
-              className={`flex flex-col md:flex-row justify-between items-start md:items-center bg-[#ffe5e5] rounded-xl p-4 shadow transition ${
-                task.completed ? "opacity-60" : ""
-              }`}
-            >
-              <div className="text-sm text-red-800 font-semibold w-full md:w-1/6">
-                {formatTime(task.time)}
-              </div>
-
-              <div className="flex-1 w-full md:ml-4">
-                <h2
-                  className={`text-lg font-semibold ${
-                    task.completed ? "line-through text-gray-500" : "text-red-700"
-                  }`}
-                >
-                  {task.title}
-                </h2>
-                <p
-                  className={`text-sm ${
-                    task.completed ? "line-through text-gray-400" : "text-red-600"
-                  }`}
-                >
-                  {task.description}
-                </p>
-              </div>
-
-              <div className="mt-2 md:mt-0">
-                <button
-                  onClick={() => toggleDone(task._id, task.completed)}
-                  disabled={togglingId === task._id}
-                  className={`border-2 rounded-full w-6 h-6 flex items-center justify-center disabled:opacity-50 ${
-                    task.completed ? "bg-red-500 border-red-500" : "border-red-400"
-                  }`}
-                  aria-label="Mark as done"
-                >
-                  {task.completed && (
-                    <span className="text-white font-bold text-sm">✓</span>
-                  )}
-                </button>
-              </div>
+          {routines.map((routine) => (
+            <div key={routine._id} className="bg-[#ffe5e5] p-4 rounded-xl shadow">
+              <h2 className="text-lg font-semibold text-red-700">{routine.title}</h2>
+              <p className="text-red-600 text-sm">{routine.description}</p>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Floating Add Button */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="fixed bottom-6 right-6 bg-red-500 text-white p-4 rounded-full shadow-lg hover:bg-red-600 transition z-50"
+        aria-label="Add new routine"
+      >
+        <Plus size={24} />
+      </button>
+
+      {showForm && (
+        <AddRoutineForm onClose={() => setShowForm(false)} onSave={handleAddRoutine} />
       )}
     </div>
   );
 };
 
-export default DailyRoutine;
+export default DailyRoutinePlan;

@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3000'; // adjust to your backend port
+const BASE_URL =  import.meta.env.VITE_API_URL; // adjust to your backend port
 
 const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
