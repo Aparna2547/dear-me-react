@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { authApi } from "../utils/fetchApi";
+import { useAuth } from "../context/AuthContext";
 
 const SignUpForm = () => {
   const {
@@ -9,15 +11,42 @@ const SignUpForm = () => {
     handleSubmit,
     formState: { errors },
     watch,
+    reset,
   } = useForm();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
-  const navigate = useNavigate();
+  const [serverError, setServerError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = (data) => {
-    console.log("Form submitted:", data);
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const onSubmit = async (data) => {
+    setServerError("");
+    setLoading(true);
+    try {
+      let res;
+      if (activeTab === "signup") {
+        res = await authApi.signup(data.fullName, data.email, data.password);
+      } else {
+        res = await authApi.login(data.email, data.password);
+      }
+
+      login(res.token); // saves token to localStorage + context
+      navigate("/landing");
+    } catch (err) {
+      setServerError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    setServerError("");
+    reset();
   };
 
   return (
@@ -38,7 +67,7 @@ const SignUpForm = () => {
               <span className="font-bold text-lg">Dear Me</span>
             </div>
             <div className="text-center mt-6">
-             <h1 className="text-4xl lg:text-4xl font-bold mb-4">
+              <h1 className="text-4xl lg:text-4xl font-bold mb-4">
                 hey beautiful
                 <br />
                 <span className="text-3xl text-pink-200">This is for you</span>
@@ -52,143 +81,147 @@ const SignUpForm = () => {
           {/* Form Section */}
           <div className="lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {activeTab === "signup" ? (
-  <>
-    {/* Sign Up Fields */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-      <input
-        {...register("fullName", { required: "Full name is required" })}
-        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
-        placeholder="Enter your full name"
-      />
-      {errors.fullName && (
-        <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>
-      )}
-    </div>
+              {activeTab === "signup" ? (
+                <>
+                  {/* Sign Up Fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <input
+                      {...register("fullName", { required: "Full name is required" })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
+                      placeholder="Enter your full name"
+                    />
+                    {errors.fullName && (
+                      <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>
+                    )}
+                  </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-      <input
-        {...register("email", {
-          required: "Email is required",
-          pattern: {
-            value: /^\S+@\S+$/i,
-            message: "Invalid email address",
-          },
-        })}
-        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
-        placeholder="Enter your email"
-      />
-      {errors.email && (
-        <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-      )}
-    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      {...register("email", {
+                        required: "Email is required",
+                        pattern: {
+                          value: /^\S+@\S+$/i,
+                          message: "Invalid email address",
+                        },
+                      })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
+                      placeholder="Enter your email"
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                    )}
+                  </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-      <div className="relative">
-        <input
-          type={showPassword ? "text" : "password"}
-          {...register("password", {
-            required: "Password is required",
-            minLength: {
-              value: 6,
-              message: "Password must be at least 6 characters",
-            },
-          })}
-          className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
-          placeholder="Create a password"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-        >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
-      </div>
-      {errors.password && (
-        <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-      )}
-    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        {...register("password", {
+                          required: "Password is required",
+                          minLength: {
+                            value: 6,
+                            message: "Password must be at least 6 characters",
+                          },
+                        })}
+                        className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
+                        placeholder="Create a password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                    )}
+                  </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-      <div className="relative">
-        <input
-          type={showConfirmPassword ? "text" : "password"}
-          {...register("confirmPassword", {
-            required: "Please confirm your password",
-            validate: (value) =>
-              value === watch("password") || "Passwords do not match",
-          })}
-          className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
-          placeholder="Confirm password"
-        />
-        <button
-          type="button"
-          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-        >
-          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
-      </div>
-      {errors.confirmPassword && (
-        <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-      )}
-    </div>
-  </>
-) : (
-  <>
-    {/* Login Fields */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-      <input
-        {...register("email", { required: "Email is required" })}
-        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
-        placeholder="Enter your email"
-      />
-      {errors.email && (
-        <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-      )}
-    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        {...register("confirmPassword", {
+                          required: "Please confirm your password",
+                          validate: (value) =>
+                            value === watch("password") || "Passwords do not match",
+                        })}
+                        className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
+                        placeholder="Confirm password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      >
+                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Login Fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      {...register("email", { required: "Email is required" })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
+                      placeholder="Enter your email"
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                    )}
+                  </div>
 
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-      <div className="relative">
-        <input
-          type={showPassword ? "text" : "password"}
-          {...register("password", { required: "Password is required" })}
-          className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
-          placeholder="Enter your password"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-        >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
-      </div>
-      {errors.password && (
-        <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-      )}
-    </div>
-  </>
-)}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        {...register("password", { required: "Password is required" })}
+                        className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500"
+                        placeholder="Enter your password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                    )}
+                  </div>
+                </>
+              )}
 
+              {serverError && (
+                <p className="text-red-500 text-sm text-center -mt-2">{serverError}</p>
+              )}
 
               {/* Submit Button */}
               <button
                 type="submit"
-                onClick={()=>{
-navigate("/landing")
-
-                }}
-                className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 px-4 rounded-xl font-medium text-lg hover:from-pink-600 hover:to-red-600"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 px-4 rounded-xl font-medium text-lg hover:from-pink-600 hover:to-red-600 disabled:opacity-60"
               >
-                {activeTab === "signup" ? "Create Account" : "Sign In"}
+                {loading
+                  ? "Please wait..."
+                  : activeTab === "signup"
+                  ? "Create Account"
+                  : "Sign In"}
               </button>
             </form>
 
@@ -198,18 +231,17 @@ navigate("/landing")
                 <>
                   Already have an account?{" "}
                   <button
-                    onClick={() => {setActiveTab("login")}}
+                    onClick={() => switchTab("login")}
                     className="text-pink-600 hover:underline font-medium"
-                    
                   >
                     Sign in
                   </button>
                 </>
               ) : (
                 <>
-                  Don’t have an account?{" "}
+                  Don't have an account?{" "}
                   <button
-                    onClick={() => setActiveTab("signup")}
+                    onClick={() => switchTab("signup")}
                     className="text-pink-600 hover:underline font-medium"
                   >
                     Sign up
