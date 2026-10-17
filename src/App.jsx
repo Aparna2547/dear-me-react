@@ -4,23 +4,26 @@ import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import Navbar from './user/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/signup" element={<Signup />} />
-          <Route
-            path="*"
-            element={
-              <ProtectedRoute>
-                <Navbar />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
+      <NotificationProvider>
+        <Router>
+          <Routes>
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="*"
+              element={
+                <ProtectedRoute>
+                  <Navbar />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

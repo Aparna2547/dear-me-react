@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Eye, EyeOff, Heart } from "lucide-react";
+import { Eye, EyeOff, Heart, KeyRound, X, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../utils/fetchApi";
 import { useAuth } from "../context/AuthContext";
@@ -19,6 +19,16 @@ const SignUpForm = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Forgot Password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
+  const [showResetPasswordEye, setShowResetPasswordEye] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -47,6 +57,44 @@ const SignUpForm = () => {
     setActiveTab(tab);
     setServerError("");
     reset();
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotSuccess("");
+
+    if (!forgotEmail || !forgotNewPassword || !forgotConfirmPassword) {
+      setForgotError("Please fill in all fields");
+      return;
+    }
+
+    if (forgotNewPassword.length < 6) {
+      setForgotError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError("Passwords do not match");
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await authApi.resetPassword(forgotEmail, forgotNewPassword);
+      setForgotSuccess(res.message || "Password reset successfully!");
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setForgotEmail("");
+        setForgotNewPassword("");
+        setForgotConfirmPassword("");
+        setForgotSuccess("");
+      }, 2000);
+    } catch (err) {
+      setForgotError(err.message || "Failed to reset password");
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -184,7 +232,20 @@ const SignUpForm = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">Password</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPassword(true);
+                          setForgotError("");
+                          setForgotSuccess("");
+                        }}
+                        className="text-xs text-pink-600 hover:text-pink-800 hover:underline font-semibold"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -252,6 +313,114 @@ const SignUpForm = () => {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 md:p-8 relative animate-fadeIn">
+            <button
+              onClick={() => setShowForgotPassword(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600">
+                <KeyRound size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Reset Password</h3>
+                <p className="text-xs text-gray-500">Enter your email and create a new password</p>
+              </div>
+            </div>
+
+            {forgotError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+                {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-center space-x-2">
+                <CheckCircle size={18} className="text-green-600 shrink-0" />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                  Registered Email
+                </label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showResetPasswordEye ? "text" : "password"}
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPasswordEye(!showResetPasswordEye)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showResetPasswordEye ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  type={showResetPasswordEye ? "text" : "password"}
+                  value={forgotConfirmPassword}
+                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="w-1/2 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-1/2 py-2.5 bg-gradient-to-r from-pink-500 to-red-500 text-white font-medium rounded-xl hover:from-pink-600 hover:to-red-600 transition disabled:opacity-60 text-sm"
+                >
+                  {forgotLoading ? "Resetting..." : "Save Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

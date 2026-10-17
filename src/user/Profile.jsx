@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 import request from "../utils/fetchApi";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 const Profile = () => {
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
    
@@ -59,10 +64,24 @@ const Profile = () => {
     );
   }
 
+  const handleLogout = () => {
+    logout();
+    navigate("/signup");
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border border-red-100">
-        <h2 className="text-xl font-semibold text-red-600 mb-4">Profile</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-red-600">Profile</h2>
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-2 text-sm text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
 
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
         {success && <p className="text-green-600 text-sm mb-3">{success}</p>}
@@ -98,13 +117,15 @@ const Profile = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-60"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
+          <div className="flex items-center gap-4 pt-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-red-600 text-white px-5 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
